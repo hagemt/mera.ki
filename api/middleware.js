@@ -9,6 +9,21 @@ const parse = require('co-body')
 
 const link = require('./link.js')
 
+class AuthRouter extends KoaRouter {
+
+	constructor ({ data, prefix = '/auth' }) {
+		super({ prefix }) // e.g. GET /login
+		//const storage = data.getStorage()
+		this.post('/login', async () => {
+			throw Boom.notImplemented()
+		})
+		this.post('/logout', async () => {
+			throw Boom.notImplemented()
+		})
+	}
+
+}
+
 class DataRouter extends KoaRouter {
 
 	constructor ({ data, prefix = '/api/data' }) {
@@ -62,6 +77,8 @@ const createApplication = ({ log }) => omnibus.createApplication({
 	targetLogger: (options, context, fields) => log.child(fields),
 })
 
+const createAuthRouter = options => new AuthRouter(options)
+
 const createDataRouter = options => new DataRouter(options)
 
 const createLinkRouter = options => new LinkRouter(options)
@@ -85,6 +102,7 @@ const redirectLinks = ({ data }) => {
 
 module.exports = {
 	createApplication,
+	createAuthRouter,
 	createDataRouter,
 	createLinkRouter,
 	redirectLinks,
