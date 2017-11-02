@@ -3,6 +3,13 @@ const path = require('path')
 
 const _ = require('lodash')
 
+const secrets = {}
+try {
+	Object.assign(secrets, require('./secrets.js'))
+} catch (error) {
+	console.error(error) // eslint-disable-line no-console
+}
+
 const DEFAULT_PORT_NUMBER = 8080 // alternative HTTP
 
 const PROJECT_ROOT = path.resolve(__dirname, '..')
@@ -21,6 +28,7 @@ const all = Object.freeze({
 		name: process.env.LOG_NAME || 'mera.ki',
 		path: process.env.LOG_PATH || LOG_PATH,
 	}),
+	secrets: Object.freeze(secrets),
 	server: Object.freeze({
 		path: process.env.SERVED_PATH || SERVER_PATH,
 		port: process.env.PORT || DEFAULT_PORT_NUMBER,
