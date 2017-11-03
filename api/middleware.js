@@ -4,8 +4,8 @@ const { URL } = require('url')
 const Boom = require('boom')
 const KoaRouter = require('koa-router')
 const omnibus = require('koa-omnibus')
-
 const parse = require('co-body')
+const zxcvbn = require('zxcvbn')
 
 const link = require('./link.js')
 
@@ -19,6 +19,15 @@ class AuthRouter extends KoaRouter {
 		})
 		this.post('/logout', async () => {
 			throw Boom.notImplemented()
+		})
+		this.post('/zxcvbn', async ({ request, response }) => {
+			try {
+				const { password } = await parse.json(request)
+				response.body = zxcvbn(password)
+			} catch (error) {
+				omnibus.log.warn({ err: error }, 'cannot zxcvbn')
+				throw new Boom.badRequest('A password is required.')
+			}
 		})
 	}
 

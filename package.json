@@ -8,6 +8,7 @@
     "@koa/cors": "2.2.1",
     "bootstrap": "4.0.0-beta.2",
     "bunyan": "1.8.12",
+    "classnames": "2.2.5",
     "co-body": "5.1.1",
     "font-awesome": "^4.7.0",
     "http-shutdown": "1.2.0",
@@ -27,6 +28,7 @@
     "lodash": "4.17.4",
     "passport-local": "1.0.0",
     "popper.js": "1.12.6",
+    "prop-types": "15.6.0",
     "react": "16.0.0",
     "react-copy-to-clipboard": "5.0.1",
     "react-dom": "16.0.0",
@@ -34,7 +36,8 @@
     "reactstrap": "5.0.0-alpha.3",
     "shortid": "2.2.8",
     "supertest": "3.0.0",
-    "uuid": "3.1.0"
+    "uuid": "3.1.0",
+    "zxcvbn": "4.4.2"
   },
   "devDependencies": {
     "eslint": "4.10.0",
@@ -48,6 +51,7 @@
   },
   "scripts": {
     "bundle": "react-scripts build",
+    "clean": "rm -fv data.json* server.log*",
     "client": "react-scripts start",
     "eslint": "eslint .eslintrc.js api src",
     "report": "npm run report:server && npm run report:client",
