@@ -54,8 +54,8 @@ try {
 
 module.exports = {
 	get: key => getValue(config, key),
-	getSecrets: (key) => {
-		if (!key) return secrets
-		return getValue(secrets, key)
+	getSecrets: (...args) => {
+		if (args.length === 0) return secrets
+		return getValue(secrets, ...args)
 	},
 }

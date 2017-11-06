@@ -7,19 +7,14 @@ const omnibus = require('koa-omnibus')
 const parse = require('co-body')
 const zxcvbn = require('zxcvbn')
 
+const auth = require('./auth.js')
 const link = require('./link.js')
 
 class AuthRouter extends KoaRouter {
 
 	constructor ({ data, prefix = '/auth' }) {
 		super({ prefix }) // e.g. GET /login
-		//const storage = data.getStorage()
-		this.post('/login', async () => {
-			throw Boom.notImplemented()
-		})
-		this.post('/logout', async () => {
-			throw Boom.notImplemented()
-		})
+		this.get('*', auth.useSession(data.getStorage()))
 		this.post('/zxcvbn', async ({ request, response }) => {
 			try {
 				const { password } = await parse.json(request)

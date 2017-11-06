@@ -1,6 +1,9 @@
 /* eslint-env node */
 const HTTP = require('http')
 
+// https://www.npmjs.com/package/http-shutdown
+const httpShutdown = require('http-shutdown')
+// TODO (tohagema): compose the following middleware?
 //const koaBodyParser = require('koa-bodyparser')
 //const koaCompose = require('koa-compose')
 //const koaCompress = require('koa-compress')
@@ -8,36 +11,21 @@ const HTTP = require('http')
 //const koaEtag = require('koa-etag')
 //const koaFavicon = require('koa-favicon')
 //const koaHelmet = require('koa-helmet')
-//const koaPassport = require('koa-passport')
-//const koaSession = require('koa-session')
 const koaStatic = require('koa-static')
-const httpShutdown = require('http-shutdown')
 const _ = require('lodash')
 
+const auth = require('./auth.js')
 const config = require('./config.js')
 const data = require('./data.js')
+
+// provides factories for routers, etc.
 const middleware = require('./middleware.js')
 
-/*
-const koaPassportSetup = () => {
-	const one = koaPassport.initialize()
-	const two = koaPassport.session()
-	return koaCompose([one, two])
-}
-*/
-
-const koaBoilerplate = ({ application, data, log }) => {
-	application.keys = [process.env.SECRET || 'mera.ki']
-	application.proxy = true // what does this do exactly?
-	//application.use(koaBodyParser())
-	//application.use(koaCompress())
-	//application.use(koaCORS())
-	//application.use(koaEtag())
-	//application.use(koaFavicon())
-	//application.use(koaHelmet())
-	//application.use(koaPassportSetup({ data, log }))
-	//application.use(koaSession({}, application))
-	return async function probe (context, next) {
+const koaSessionProbe = ({ application, data, log }) => {
+	const keys = [config.getSecrets().session || 'mera.ki']
+	auth.setupSession({ key: 'meraki' }, application, { keys })
+	return async function probe ({ omnibus, request, session }, next) {
+		omnibus.log.info({ req: _.omit(request, ['header']), session }, 'probe')
 		await next()
 	}
 }
@@ -47,7 +35,7 @@ const createService = _.once(() => {
 	const application = middleware.createApplication({ log })
 	const SERVED_FOLDER = config.get('server.path') // ../served
 	application.use(koaStatic(SERVED_FOLDER, { defer: true }))
-	application.use(koaBoilerplate({ application, data, log }))
+	application.use(koaSessionProbe({ application, data, log }))
 	const routers = [] // routers handle distinct resources:
 	routers.push(middleware.createAuthRouter({ data }))
 	routers.push(middleware.createDataRouter({ data }))
