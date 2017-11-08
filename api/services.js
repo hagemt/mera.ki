@@ -25,7 +25,8 @@ const koaSessionProbe = ({ application, data, log }) => {
 	const keys = [config.getSecrets().session || 'mera.ki']
 	auth.setupSession({ key: 'meraki' }, application, { keys })
 	return async function probe ({ omnibus, request, session }, next) {
-		omnibus.log.info({ req: _.omit(request, ['header']), session }, 'probe')
+		const req = _.omit(request, ['header']) // no Authorization
+		omnibus.log.debug({ req, session }, 'probe')
 		await next()
 	}
 }
@@ -44,7 +45,8 @@ const createService = _.once(() => {
 		application.use(router.routes())
 		application.use(router.allowedMethods())
 	}
-	application.use(middleware.redirectLinks({ data }))
+	// This middleware should always be last: (fall-back)
+	application.use(middleware.redirectQueryID({ data }))
 	// a "service" is (for now) just an Object w/ logger + server
 	const server = HTTP.createServer(application.callback())
 	return Object.freeze({ log, server: httpShutdown(server) })

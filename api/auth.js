@@ -70,8 +70,22 @@ const useSession = (/* storage */) => {
 	}
 	const toGoogle = koaCompose([
 		koaPassport.authenticate('google', {
-			// TODO (tohagema): switch this out with Analytics
-			scope: 'https://www.googleapis.com/auth/plus.login',
+			scope: [
+				// from Google {Analytics API (v3), OAuth2 API (v2), URL Shortener API (v1)}
+				// Documentation: https://developers.google.com/identity/protocols/googlescopes
+				//'https://www.googleapis.com/auth/analytics.edit', // Edit Google Analytics management entities
+				//'https://www.googleapis.com/auth/analytics.manage.users', // Manage Google Analytics Account users by email address
+				//'https://www.googleapis.com/auth/analytics.manage.users.readonly', // View Google Analytics user permissions
+				//'https://www.googleapis.com/auth/analytics.provision', // Create a new Google Analytics account
+				//'https://www.googleapis.com/auth/analytics.readonly', // View your Google Analytics data
+				'https://www.googleapis.com/auth/analytics', // View and manage your Google Analytics data
+				//'https://www.googleapis.com/auth/plus.login', // Know the list of people in your circles, age range, and language
+				//'https://www.googleapis.com/auth/plus.me', // Know who you are on Google
+				'https://www.googleapis.com/auth/urlshortener', // Manage your goo.gl short URLs
+				'https://www.googleapis.com/auth/userinfo.email', // View your email address
+				//'https://www.googleapis.com/auth/userinfo.profile', // View your basic profile info
+				// Also, see: https://developers.google.com/identity/one-tap/web/idtoken-auth
+			],
 		})
 	])
 	const fromGoogle = koaCompose([
