@@ -70,6 +70,7 @@ const useSession = (/* storage */) => {
 	}
 	const toGoogle = koaCompose([
 		koaPassport.authenticate('google', {
+			// TODO (tohagema): switch this out with Analytics
 			scope: 'https://www.googleapis.com/auth/plus.login',
 		})
 	])

@@ -71,22 +71,3 @@ const fromStorage = (storage = data.getStorage()) => {
 module.exports = {
 	fromStorage,
 }
-
-if (!module.parent) {
-	require('./mocks.js') // storage, etc.
-	const storage = data.getStorage()
-	const linker = fromStorage(storage)
-	const args = process.execArgv.slice()
-	const longURL = new URL(args[0] || 'https://google.com')
-	linker.shorten(longURL)
-		.then((result) => {
-			// eslint-disable-next-line no-console
-			console.log(`${result}: ${longURL}`)
-			process.exit()
-		})
-		.catch((reason) => {
-			// eslint-disable-next-line no-console
-			console.error(reason, 'failure')
-			process.exit(1)
-		})
-}
