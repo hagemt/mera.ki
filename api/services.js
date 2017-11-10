@@ -42,11 +42,11 @@ const createService = _.once(() => {
 	routers.push(middleware.createDataRouter({ data }))
 	routers.push(middleware.createLinkRouter({ data }))
 	for (const router of routers) {
-		application.use(router.routes())
 		application.use(router.allowedMethods())
+		application.use(router.routes())
 	}
 	// This middleware should always be last: (fall-back)
-	application.use(middleware.redirectQueryID({ data }))
+	application.use(middleware.redirectLinkIDs({ data }))
 	// a "service" is (for now) just an Object w/ logger + server
 	const server = HTTP.createServer(application.callback())
 	return Object.freeze({ log, server: httpShutdown(server) })

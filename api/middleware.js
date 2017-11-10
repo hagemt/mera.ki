@@ -2,10 +2,12 @@
 const { URL } = require('url')
 
 const Boom = require('boom')
+const koaCompose = require('koa-compose')
+const koaOmnibus = require('koa-omnibus')
 const KoaRouter = require('koa-router')
-const omnibus = require('koa-omnibus')
 const parse = require('co-body')
 const zxcvbn = require('zxcvbn')
+const _ = require('lodash')
 
 const auth = require('./auth.js')
 const link = require('./link.js')
@@ -15,7 +17,7 @@ class AuthRouter extends KoaRouter {
 	constructor ({ data, prefix = '/auth' }) {
 		super({ prefix }) // e.g. GET /login
 		this.get('*', auth.useSession(data.getStorage()))
-		this.post('/zxcvbn', async ({ request, response }) => {
+		this.post('/zxcvbn', async ({ omnibus, request, response }) => {
 			try {
 				const { password } = await parse.json(request)
 				response.body = zxcvbn(password) // 200 OK
@@ -46,7 +48,7 @@ class DataRouter extends KoaRouter {
 				before[key] = await storage.get(key) // may be undefined
 				await storage.set(key, value) // written to disk on sync
 			}
-			response.body = { before, after } // 200 OK
+			response.body = { before, after } // with status: 200 OK
 		})
 	}
 
@@ -69,9 +71,9 @@ class LinkRouter extends KoaRouter {
 		})
 		this.post('/', async ({ omnibus, request, response }) => {
 			try {
-				const longURL = new URL(await parse.text(request)) // relative to request.origin:
-				const shortURL = new URL(`/link?id=?${await links.shorten(longURL)}`, request.origin)
-				response.set('Location', shortURL.toString()) // e.g. http://mera.ki/link?id=ABC123
+				const longURL = new URL(await parse.text(request)) // will be assigned short code (id)
+				const shortURL = new URL(`/?${await links.shorten(longURL)}`, request.origin) // suffix
+				response.set('Location', shortURL.toString()) // something like: https://mera.ki/?ABC123
 				Object.assign(response, { body: response.get('Location'), status: 201 }) // Created
 				omnibus.log.info({ longURL, shortURL }, 'created new URL link (will redirect)')
 			} catch (error) {
@@ -83,7 +85,7 @@ class LinkRouter extends KoaRouter {
 
 }
 
-const createApplication = ({ log }) => omnibus.createApplication({
+const createApplication = ({ log }) => koaOmnibus.createApplication({
 	targetLogger: (options, context, fields) => log.child(fields),
 })
 
@@ -93,19 +95,31 @@ const createDataRouter = options => new DataRouter(options)
 
 const createLinkRouter = options => new LinkRouter(options)
 
-const redirectQueryID = ({ data, prefix = '/link' }) => {
+const redirectLinkIDs = ({ data, prefix = '/link' }) => {
 	const links = link.fromStorage(data.getStorage())
-	return async function redirect ({ omnibus, query, request, response }, next) {
-		if (request.method !== 'GET' || request.path !== prefix) return next()
-		const longURL = await links.get(query.id)
-		if (longURL) {
-			response.redirect(longURL) // with status: 302 Found
-			omnibus.log.info({ query }, `${prefix} (was found)`)
-		} else {
-			omnibus.log.warn({ query }, `${prefix} (not found)`)
-		}
-		await next()
+	const redirect = async (context, id) => {
+		if (!id) throw Boom.badRequest('missing link ID')
+		const longURL = await links.get(id) // toString'd URL
+		if (!longURL) throw Boom.notFound(`invalid link ID (${id})`)
+		context.redirect(longURL) // short body w/ status: 302 Found
+		context.omnibus.log.info({ id, longURL }, 'found redirect')
+		return longURL // long URL String will always be truthy-y
 	}
+	const router = new KoaRouter() // no prefix
+	router.get('/', async (context, next) => {
+		const id = _.get(context.url.match(/\/\?(.*)$/), 1)
+		const found = await redirect(context, id)
+		if (!found) await next() // probably 404
+	})
+	router.get(prefix, async (context, next) => {
+		const id = _.get(context, 'query.id')
+		const found = await redirect(context, id)
+		if (!found) await next() // probably 404
+	})
+	return koaCompose([
+		router.allowedMethods(),
+		router.routes(),
+	])
 }
 
 module.exports = {
@@ -113,5 +127,5 @@ module.exports = {
 	createAuthRouter,
 	createDataRouter,
 	createLinkRouter,
-	redirectQueryID,
+	redirectLinkIDs,
 }
