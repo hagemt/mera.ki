@@ -1,77 +1,66 @@
 import React from 'react'
-
-import FontAwesome from 'react-fontawesome'
-
-import {
-	Badge,
-	Button,
-	Jumbotron,
-	Modal,
-	ModalBody,
-	ModalFooter,
-	ModalHeader,
-} from 'reactstrap'
+import ReactFontAwesome from 'react-fontawesome'
+import { Badge, Button, Jumbotron } from 'reactstrap'
+import { MemoryRouter as Router } from 'react-router-dom'
+import Types from 'prop-types'
 
 import LinkShortening from './LinkShortening.js'
 import PasswordStrength from './PasswordStrength.js'
 import TabNavigation from './TabNavigation.js'
+import UserLogin from './UserLogin.js'
 
-class Home extends React.Component {
+const UserWelcome = ({ currentUser }) => (
+	<Jumbotron className='m-3 p-3'>
+		<h1><Badge>{currentUser.email}</Badge>, welcome!</h1>
+		<span>Please click on one of the tabs above to get started.</span>
+	</Jumbotron>
+)
 
-	constructor (...args) {
-		super(...args)
-		this.state = {
-			isModalOpen: false,
-		}
-	}
-
-	toggleModal () {
-		this.setState({
-			isModalOpen: !this.state.isModalOpen,
-		})
-	}
-
-	render () {
-		return (
-			<div className='home'>
-				<div className='m-3 p-3 text-center'>
-					<Button className='primary' onClick={() => this.toggleModal()}>Open</Button>
-				</div>
-				<Modal isOpen={this.state.isModalOpen} toggle={() => this.toggleModal()}>
-					<ModalHeader>
-						<h2>It lives!</h2>
-					</ModalHeader>
-					<ModalBody>
-						<span>Holy shit.</span>
-					</ModalBody>
-					<ModalFooter>
-						<Button onClick={() => this.toggleModal()}>Close</Button>
-					</ModalFooter>
-				</Modal>
-			</div>
-		)
-	}
-
+UserWelcome.propTypes = {
+	currentUser: Types.object.isRequired,
 }
 
+const validUser = currentUser => currentUser && currentUser.token
+
+const buildHead = currentUser => validUser(currentUser)
+	? (
+		<Button onClick={() => UserLogin.logout()}>Logout</Button>
+	)
+	: (
+		<Button onClick={() => UserLogin.login()}>Login</Button>
+	)
+
+const buildBody = currentUser => validUser(currentUser)
+	? (
+		<TabNavigation tabs={{
+			'Welcome': (<UserWelcome currentUser={currentUser} />),
+			'Link Shortening': (<LinkShortening currentUser={currentUser} />),
+			'Password Strength': (<PasswordStrength currentUser={currentUser} />),
+		}} />
+	)
+	: (
+		<UserLogin currentUser={currentUser} />
+	)
+
 const Root = () => {
-	const tabs = [
-		{ element: (<Home />), title: 'Home' },
-		{ element: (<LinkShortening />), title: 'Link Shortening' },
-		{ element: (<PasswordStrength />), title: 'Password Strength' },
-	]
+	const currentUser = UserLogin.currentUser()
 	return (
-		<div className='root'>
-			<Jumbotron>
-				<Badge>
-					<FontAwesome name='rocket' size='4x' />
-				</Badge>
-				<h1>mera.ki</h1>
-			</Jumbotron>
-			<div className='container-fluid'>
-				<TabNavigation tabs={tabs} />
+		<Router>
+			<div className='root'>
+				<Jumbotron className='text-center'>
+					<Badge>
+						<ReactFontAwesome name='rocket' size='4x' />
+					</Badge>
+					<h1>mera.ki</h1>
+					<div className='container'>
+						{buildHead(currentUser)}
+					</div>
+				</Jumbotron>
+				<div className='container-fluid'>
+					{buildBody(currentUser)}
+				</div>
 			</div>
-		</div>
+		</Router>
 	)
 }
 

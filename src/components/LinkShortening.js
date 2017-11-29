@@ -4,7 +4,6 @@ import {
 	Alert,
 	Form,
 	FormGroup,
-	FormText,
 	InputGroup,
 	InputGroupButton,
 } from 'reactstrap'
@@ -25,8 +24,8 @@ class LinkShortening extends React.Component {
 	}
 
 	copyTimeout () {
-		this.setState({ isLoading: true, copyButtonText: 'Copied!' })
-		setTimeout(() => this.setState({ isLoading: false, copyButtonText: 'Copy' }), 1000)
+		this.setState({ copyButtonText: 'Copied!' }) // and after one second:
+		setTimeout(() => this.setState({ copyButtonText: 'Copy' }), 1000)
 	}
 
 	async shortenLink (longURL) {
@@ -40,45 +39,63 @@ class LinkShortening extends React.Component {
 		} finally {
 			this.setState({ isLoading: false })
 		}
+		return this.state.shortURL
 	}
 
 	resetLink (event) {
-		this.setState({ longURL: '', shortURL: '' })
 		event.preventDefault()
+		this.setState({
+			copyButtonText: 'Copy!',
+			longURL: (this.long.value = ''),
+			shortURL: (this.short.value = ''),
+		})
 	}
 
 	submitLink (event) {
-		this.shortenLink(this.long.value)
 		event.preventDefault()
+		this.shortenLink(this.long.value)
+			.then((shortURL) => (this.short.value = shortURL))
 	}
 
 	render () {
+		const refLong = (element) => (this.long = element)
+		const refShort = (element) => (this.short = element)
 		const { copyButtonText, isLoading, lastError, longURL, shortURL } = this.state
 		return (
-			<Form className='link-shortening' onSubmit={event => this.submitLink(event)}>
-				<FormGroup>
-					<Alert color='danger' isOpen={Boolean(lastError)} toggle={() => this.setState({ lastError: null })}>
-						<FormText>Sorry, but that link could not be shortened.</FormText>
-					</Alert>
-				</FormGroup>
-				<FormGroup>
-					<InputGroup>
-						{longURL
+			<div className='link-shortening'>
+				<Form className='m-3 p-3' onSubmit={event => this.submitLink(event)}>
+					<FormGroup>
+						<InputGroup>
+							{longURL
 								? (<InputGroupButton disabled={isLoading} onClick={event => this.resetLink(event)}>Another!</InputGroupButton>)
 								: (<InputGroupButton disabled={isLoading} type='submit'>Shorten</InputGroupButton>)
-						}
-						<input className='form-control' disabled={isLoading || longURL} placeholder='Long URL' ref={e => this.long = e} type='text' value={longURL} />
-					</InputGroup>
-				</FormGroup>
-				<FormGroup>
-					<InputGroup>
-						<CopyToClipboard onCopy={(...args) => this.copyTimeout(...args)} text={shortURL}>
-							<InputGroupButton disabled={!shortURL}>{copyButtonText}</InputGroupButton>
-						</CopyToClipboard>
-						<input className='form-control' disabled={true} placeholder='Short URL' ref={e => this.short = e} type='text' value={shortURL} />
-					</InputGroup>
-				</FormGroup>
-			</Form>
+							}
+							<input
+								autoFocus={true}
+								className='form-control'
+								disabled={isLoading || longURL}
+								maxLength={2048}
+								placeholder='Long URL'
+								ref={refLong}
+								type='text'
+							/>
+						</InputGroup>
+					</FormGroup>
+					<FormGroup>
+						<InputGroup>
+							<CopyToClipboard onCopy={(...args) => this.copyTimeout(...args)} text={shortURL}>
+								<InputGroupButton disabled={!shortURL}>{copyButtonText}</InputGroupButton>
+							</CopyToClipboard>
+							<input className='form-control' disabled={true} placeholder='Short URL' ref={refShort} type='text' />
+						</InputGroup>
+					</FormGroup>
+					<FormGroup>
+						<Alert color='danger' isOpen={Boolean(lastError)} toggle={() => this.setState({ lastError: null })}>
+							Sorry: that link could not be shortened. Make sure your URL is valid.
+						</Alert>
+					</FormGroup>
+				</Form>
+			</div>
 		)
 	}
 

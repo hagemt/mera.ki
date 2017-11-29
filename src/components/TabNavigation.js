@@ -3,13 +3,16 @@ import React from 'react'
 import classNames from 'classnames'
 import Types from 'prop-types'
 
+import { Link, Route } from 'react-router-dom'
+
 import {
 	Nav,
 	NavItem,
-	NavLink,
 	TabContent,
 	TabPane,
 } from 'reactstrap'
+
+const routerPath = index => index ? `/tab/${index}` : '/'
 
 class TabNavigation extends React.Component {
 
@@ -32,18 +35,19 @@ class TabNavigation extends React.Component {
 		return (
 			<div className='tab-navigation'>
 				<Nav tabs>
-					{tabs.map(({ title }, index) => (
-						<NavItem key={`navitem-tab-${index}`}>
-							<NavLink className={classNames({ active: activeTab === index })} onClick={() => this.activeTab(index)}>
-								{title}
-							</NavLink>
-						</NavItem>
-					))}
+					{Object.keys(tabs).map((key, index) => {
+						const className = classNames({ active: activeTab === index, 'nav-link': true })
+						return (
+							<NavItem key={index}>
+								<Link className={className} onClick={() => this.activeTab(index)} to={routerPath(index)}>{key}</Link>
+							</NavItem>
+						)
+					})}
 				</Nav>
 				<TabContent activeTab={this.state.activeTab}>
-					{tabs.map(({ element }, index) => (
-						<TabPane key={`tab-${index}`} tabId={index}>
-							{element}
+					{Object.keys(tabs).map((key, index) => (
+						<TabPane key={index} tabId={index}>
+							<Route exact path={routerPath(index)} render={() => tabs[key]} />
 						</TabPane>
 					))}
 				</TabContent>
@@ -53,13 +57,8 @@ class TabNavigation extends React.Component {
 
 }
 
-const tab = Types.shape({
-	element: Types.element.isRequired,
-	title: Types.string.isRequired,
-})
-
 TabNavigation.propTypes = {
-	tabs: Types.arrayOf(tab).isRequired,
+	tabs: Types.object.isRequired,
 }
 
 export default TabNavigation

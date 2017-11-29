@@ -4,6 +4,7 @@ import fetch from 'isomorphic-fetch'
 import Types from 'prop-types'
 
 import {
+	Alert,
 	Badge,
 	Form,
 	FormGroup,
@@ -12,13 +13,55 @@ import {
 	Progress,
 } from 'reactstrap'
 
+const colors = Object.freeze(['danger', 'danger', 'warning', 'info', 'success'])
+const strength = Object.freeze(['Awful', 'Low', 'Okay', 'Good', 'Great'])
+
 const PasswordResult = ({ zxcvbn }) => {
-	if (!zxcvbn) return null
-	const colors = ['', 'danger', 'warning', 'info', 'success']
+	if (!zxcvbn) return null // renders nothing without response (this.props.zxcvbn)
+	const durations = zxcvbn.crack_times_display
+	const estimates = [
+		{ actor: 'a novice', duration: durations.online_throttling_100_per_hour, rate: '100 attempts per hour' },
+		{ actor: 'a professional', duration: durations.online_no_throttling_10_per_second, rate: '10 attempts per second' },
+		{ actor: 'a corporation', duration: durations.offline_slow_hashing_1e4_per_second, rate: '1000 attempts per second' },
+		{ actor: 'a state actor', duration: durations.offline_fast_hashing_1e10_per_second, rate: '10MM attempts per second' },
+	]
+	const feedback = [] // suggestions, warning, etc.
+	const score = zxcvbn.score
+	if (zxcvbn.feedback) {
+		if (zxcvbn.feedback.suggestions) {
+			const suggestions = zxcvbn.feedback.suggestions.map((suggestion, index) => (
+				<li key={`feedback-suggestions-${index}`}>{suggestion}</li>
+			))
+			if (suggestions.length > 0) {
+				feedback.push(
+					<ul key='feedback-suggestions'>{suggestions}</ul>
+				)
+			}
+		}
+		if (zxcvbn.feedback.warning) {
+			feedback.push(
+				<Alert color={score ? 'warning' : 'danger'} key='feedback-warning'>
+					{`Warning: ${zxcvbn.feedback.warning}`}
+				</Alert>
+			)
+		}
+		if (feedback.length > 0) {
+			feedback.unshift(
+				<p key='feedback-suggestions-header'>Consider this feedback, to improve your password(s):</p>
+			)
+		}
+	}
 	return (
 		<div className='password-result'>
-			<p>That password would require <Badge>{zxcvbn.crack_times_display.offline_slow_hashing_1e4_per_second}</Badge> to crack.</p>
-			<Progress animated={true} color={colors[zxcvbn.score]} max={4} value={zxcvbn.score} />
+			<div>{feedback.length > 1 ? feedback : 'Nice password!'}</div>
+			<span className='d-inline'>Strength: {strength[score]}</span>
+			<Progress color={colors[score]} max={4} value={score || 4} />
+			<p>Your password might be guessed:</p>
+			<ul>
+				{estimates.map(({ actor, duration, rate }, index) => (
+					<li key={index}>by <Badge>{actor}</Badge> in <Badge>{duration}</Badge> at <Badge>{rate}</Badge></li>
+				))}
+			</ul>
 		</div>
 	)
 }
@@ -60,23 +103,38 @@ class PasswordStrength extends React.Component {
 
 	submitForm (event) {
 		this.submitPassword(this.password.value)
+		this.password.value = ''
 		event.preventDefault()
 	}
 
 	render () {
-		const { isLoading, zxcvbnResult } = this.state
+		const { isLoading, lastError, zxcvbnResult } = this.state
+		const refPassword = (element) => (this.password = element)
 		return (
-			<Form className='password-strength' onSubmit={(...args) => this.submitForm(...args)}>
-				<FormGroup>
-					<InputGroup>
-						<InputGroupButton disabled={isLoading} type='submit'>Crack</InputGroupButton>
-						<input className='form-control' placeholder='Password' ref={e => this.password = e} type='password' />
-					</InputGroup>
-				</FormGroup>
-				<FormGroup>
-					<PasswordResult zxcvbn={zxcvbnResult} />
-				</FormGroup>
-			</Form>
+			<div className='password-strength'>
+				<Form className='m-3 p-3' onSubmit={(...args) => this.submitForm(...args)}>
+					<FormGroup>
+						<InputGroup>
+							<InputGroupButton disabled={isLoading} type='submit'>Guess</InputGroupButton>
+							<input
+								autoFocus={true}
+								className='form-control'
+								disabled={isLoading}
+								maxLength={100}
+								placeholder='Password'
+								ref={refPassword}
+								type='password'
+							/>
+						</InputGroup>
+					</FormGroup>
+					<FormGroup>
+						{lastError
+							? (<Alert color='danger'>Sorry: technical difficulties. Please try again later.</Alert>)
+							: (<PasswordResult zxcvbn={zxcvbnResult} />)
+						}
+					</FormGroup>
+				</Form>
+			</div>
 		)
 	}
 
